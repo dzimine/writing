@@ -1,8 +1,38 @@
-TODO: Add the beginning of the story. Put up excuses and disclamers.
 
-TODO: Promise multiple episodes. Hope to fit in magical "three". In the first episode, I'll set everything up and deploy my first StackStorm exchange action. In the second episode, we'll add more actions. In the third, hopefully last, we use StepFunctions to wire the actions into the workflow, and sum things up.  
+# Tutorial: Building community on-boarding app with Serverless, StepFunctions, and StackStorm Exchange.
 
-I assume no familiarity with neither Serverless framework nor StackStorm. But you should know how to code, and gotta be smart to compensate for mistakes and omissions I'll inevitably make. If you're lost... never mind, no one gets lost nowadays with Google @ Stack overflow, and GPS on smartphone. Let's rock.
+Build a real-world serverless application on AWS, using Serverless Framework and ready-to-use functions from StackStorm Exchange open-source catalog. The tutorial also touches on AWS Lambda, API Gateway, StepFunctions, DynamoDB, Slack, and ActiveCampaign. 
+
+Who should read it: 
+
+* Serverless developers using Serverless framework who want to check out ready-to use functions from StackStorm Exchange open-source catalog,
+* StackStorm users who live in AWS and miss the breadth of StackStorm exchange integrations there. 
+* Anyone who has 3 hours to follow-alone and learn serverless by example more elaborate and real-life than a Hello-world app. 
+
+If you only have _TODO_ min and already into serverless, skim the text and examples, spend extra 30 seconds browsing StackStorm Exchange to see the potential, and bookmark this post to get back to it when you need it.
+
+### Intro
+
+When I [explored Serverless with Python, StepFunctions, and Web Front-end](https://medium.com/@dzimine/exploring-serverless-with-python-stepfunctions-and-web-front-end-8e0bf7203d4b), one thing I missed is a catalog of reusable integrations.  Something like 200 connectors for Azure Logic apps. Or 130 integration packs for StackStorm. When we need to wire in Slack, Jira, Stripe, or Nest, could we skip digging into their APIs and authentication intrinsics, and just grab a ready-to-use function?. 
+
+Now we can do exactly that: StackStorm just pushed a plugin for Serverless framework that turns integrations from StackStorm Exchange into AWS Lambda functions. 
+
+In this tutorial, I’ll show how to use the plugin and Exchange integrations, in the context of building a serverless community on-boarding application from a ground-up.  It’s a holiday season, the spirits are high, I have no time or inclination to rigorous writing; instead let’s make it conversational and fun. 
+
+I assume no familiarity with neither Serverless framework nor StackStorm. But you should know how to code, and gotta be smart to compensate for mistakes and omissions I'll inevitably make. If you're lost... never mind, no one gets lost nowadays with Google @ Stack overflow, and GPS on smartphone. 
+
+We will be goings slow, with excruciating details, thus it is going to be three episodes. In the first episode, I'll set everything up and deploy my first StackStorm Exchange action. In the second episode, we'll add more actions. In the third, we use StepFunctions to wire the actions into the workflow, and sum things up. Each episode should take about an hour to follow alone. 
+
+Let's rock.
+
+
+### What we build
+
+We will build a community on-boarding application. Actually, rebuilding from scratch the one we run at StackStorm. It’s like “…”, with customizable on-boarding workflow. The app presents a registration web-form, which passes new user info through API Gateway to the StepFunction workflow that carries on-boarding steps. In my case, the steps are 1) invite using to Slack 2) create contact record in ActiveCampaign CRM tool and 3) put a user record into internal DynamoDB table. Here is how it looks:
+
+<pic>
+
+The previous implementation is here, you useit here and join StackStorm community for questions about StackStorm Exchange integration.
 
 
 ### Getting Ready
