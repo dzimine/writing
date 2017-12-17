@@ -46,11 +46,11 @@ First, you'll need AWS account, NodeJS, Docker, and Serverless framework. And Sl
 
    Once the workspace is created, time to get an authentication token. Go to [api.slack.com/custom-integrations/legacy-tokens](https://api.slack.com/custom-integrations/legacy-tokens). Fear not the "Legacy Warnings": this tutorial will turn legacy before they do. Do what they say, get your token.
   
-  > PRO TIP: Use this hack to get your own token and use it for playing. Much faster. But never, never do it for production!  
+  > PRO TIP: Use [this quick hack](https://github.com/StackStorm-Exchange/stackstorm-slack#obtaining-auth-token) to get and use your own user's auth token. Much faster, good for playing and debugging, but please never, never use it for production!  
 
 ### Create a project, add a first action
 
-Try `sls --help` to make sure that at least something works. Now put your coffee aside, time to create a project. Some like using templates that come with `serverless create --template`. I prefer to start from scratch: 
+Try `sls --help` to make sure that at least something works. `sls` is shorthand for `serverless`, the Serverless framework CLI. Now put your coffee aside, time to create a project. Some like using templates that come with `serverless create --template`. I prefer to start from scratch: 
 
 ``` 
 mkdir slack-signup-serverless-stormless
@@ -62,7 +62,7 @@ npm init
 
 ```
 
-Now we are ready to do what we came for:[`serverless-plugin-stackstorm`](https://github.com/StackStorm/serverless-plugin-stackstorm). Install it:
+Next, install [`serverless-plugin-stackstorm`](https://github.com/StackStorm/serverless-plugin-stackstorm), the one that plugs in the [StackStorm Exchange](https://exchange.stackstorm.org) actions.
 
 ```
 npm install --save-dev serverless-plugin-stackstorm
@@ -72,7 +72,7 @@ Create the first action. I'll use a battle-tested [Slack pack from StackStorm Ex
 
 `sls stackstorm info --pack slack` 
 
-Oh my! There're so many what are they? I guess I need a PR to print action description. Meantme, `| grep admin` will get us the one we need: `slack.users.admin.invite`. Let's inquire the action for it's parameters:
+Oh my! There're so many! what are they? I guess I need a PR to print action description. Meantime, `| grep admin` will get us the one we need: `slack.users.admin.invite`. Let's inquire the action for it's parameters:
 
 ```
 $ sls stackstorm info --action slack.users.admin.invite
@@ -93,7 +93,9 @@ Config
 
 
 Awesome! We can see that there is only one required parameter, `email`, but I'll add `first_name` to be conversational. The token can be passed as parameters, or as config. And if I choose to use config, my prior tribal knowledge hints that the `admin [object]` requires only `admin_token`. The very one I asked you to remember when you were setting up Slack workspace.
+
 > PRO TIP. While we are still polishing the plugin to expose all the Config details, you can find it out by exploring StackStorm Exchange pack config schema in `config.schema.yaml` file. For example, here is [config.example.yaml](https://github.com/StackStorm-Exchange/stackstorm-slack/blob/master/config.schema.yaml#L47-L78) for our Slack pack.
+
 
 Now we have all we need to create the heart of any Serverless project: the `serverless.yml`. Here it comes: 
 
@@ -125,11 +127,9 @@ plugins:
   - serverless-plugin-stackstorm
 ```
 
-This is a good time to learn a bit of Serverless. The quick pointers below won't
-reading the docs to understand
+This is a good time to learn a bit of Serverless. Take a quick break to skim [Core Concepts](https://serverless.com/framework/docs/providers/aws/guide/intro/) and bookmark [Serverless.yml Reference](https://serverless.com/framework/docs/providers/aws/guide/serverless.yml/).
 
-I threw in the `events` section here so that we can test the function with REST call to an AWS API Gateway endpoint.
-Note that this default configuration instructs API Gateway to pass the REST POST call with POST body under the `body` key ([details here](TODO-insert-link)). When we POST `{"first_name": "Santa", 
+I threw in the `events` section here so that we can invoke the function with REST call through AWS API Gateway endpoint. Serverless framework will do all the Gateway magic. Note that this default configuration instructs API Gateway to pass the REST POST call with POST body under the `body` key ([details here](https://serverless.com/framework/docs/providers/aws/events/apigateway#simple-http-endpoint). When we POST `{"first_name": "Santa", 
 "email": "santa@mad.russian.xmas.com"}`, the event passed to the Lambda is:
 
 ```
@@ -140,11 +140,11 @@ Note that this default configuration instructs API Gateway to pass the REST POST
 }
 ```
 Knowing the input data structure is important to map it to the action input parameters. It's intuitive: `input` represents `event` parameter of [AWS Lambda programming model](http://docs.aws.amazon.com/lambda/latest/dg/python-programming-model-handler-types.html) (BTW should we call it `event`? Vote with a PR!). [Jinja](http://jinja.pocoo.org/) is used to map the inputs; our JavaScript friends who're less familiar
-with this common Python tool find it intuitive enough in simple cases; and Stack-overflow is full of magic Jinga tricks.
+with this common Python tool find it intuitive enough in simple cases; and Stack-overflow is full of magic Jinja tricks.
 
 Here we obviously map the two parameters from input body to desired action input parameters. 
 
-To keep the config separately, I created a file `env.yml` and put my config parameters there:
+To keep the config separate, I created a file `env.yml` and put my config parameters there:
 
 ```
 # ./env.yml
@@ -154,16 +154,18 @@ slack:
   organization: "my-team"
 
 ```
-Than I used it in `serverless.yml` like this: `admin: ${file(env.yml):slack}`. It's self-explanatory. 
+Then I used it in `serverless.yml` like this: `admin: ${file(env.yml):slack}`. Note how this syntax puts the object from the key in the file to the key in `serverless.yml`. 
 
-Optionally, we can also form a function output from action results. Let's keep it simple for now, I'll share tricks later.
+Optionally, we can also form a function output from action results. I'll keep it simple for now and save more tricks for later.
 
-Ok, that's it! The function is ready to fly to AWS. But I take it sloooow. First, I'll package it locally. 
+Ok, that's it! The function is ready to go to AWS. But I take it sloooow. First, I'll package it locally. 
 
 ```
 sls -package
 ```
-The first time takes a long while as this is the time when the plugin sets up itself. It will pull the Docker images from the Hub (oh, did I say you got to be connected? Or we assume internet connection a basic commodity like briefing air and electric power?). It will install StackStorm runners - the code that knows to run StackStorm exchange packs. It will pull the `slack` pack from Exchange. It will install `slack` pack python dependencies. It takes a long time the first time. Good news: it's only the first time. 
+The very first time takes a long time as this is the time when the plugin installs it's runtime dependencies. It pulls the Docker images from the Hub  It installs StackStorm runners - the code that knows to run StackStorm exchange packs. It pulls the `slack` pack from Exchange. It installs `slack` pack python dependencies. It does a lot of work for us, and it takes time. Good news: it's only the first time.
+
+Oh, did I say you got to be connected? Or we assume internet connection a basic commodity like briefing air and electric power? At least before FCC repeals Network Neutrality? So yes, you need internet connection to live serverless.
 
 Now let's run this locally.
 
@@ -172,9 +174,9 @@ sls stackstorm docker run --function InviteSlack --verbose --data '{"body": {"fi
 "email": "santa@mad.russian.xmas.com"}}'
 ```
 
-Local runs in the container. It takes a bit longer, but ensures that the execution environment matches AWS lambda very closely, so better safe than sorry. 
+Local runs happen in the container. It takes a bit longer, but ensures that the execution environment matches AWS lambda very closely, so better safe than sorry. 
 
-If I want to 
+When debugging input and output parameter transformation, you may not want to call the actual function, like in case of Slack rate-limiting API. Use `--passthrough` parameter that tells the plugin to skip the action invocation.
 
 Now we are really ready ready. Deploy the function to AWS, and run it "serverless".
 
@@ -185,12 +187,12 @@ sls deploy
 It will take some while - now it's serverless (and honestly, our bundle is a bit bloated, patience! plugin developers are currently busy solving other problems, we will optimize it as soon as we can)
 
 
-> PRO TIP: if something goes wrong at this point, most likely your AWS setup is fucked up. Go to Getting Ready, step 2. Google, Stack-overflow.
+> PRO TIP: if something goes wrong at this point, most likely something is not right with your AWS setup. Go to "Getting Ready, step 2". Read [Serverless Installation](https://serverless.com/framework/docs/providers/aws/guide/installation/) doc. Google, Stack-overflow, Serverless [Gitter channel](https://gitter.im/serverless/serverless) or [Forum](https://forum.serverless.com/).
  
 
-You might be curious to see how it looks in the AWS console. If the PRO in you is saying "no, you should stay cool and use CLI", just don't listen. Indulge yourself, open a browser and take a good look to your Lambda. While there, you might also inspect the API Gateway endpoint that `sls` created for you. 
+You might be curious to see how it looks in the AWS console. If the PRO in you is saying "no, you should stay cool and use CLI", don't listen. Go indulge yourself, open a browser and take a good look to your Lambda. While there, you might also inspect the API Gateway endpoint that `sls` created for you. 
 
-But to test it, we'll go back to terminal. Here is how to run it with `sls`:
+But to test it, we'll go back to terminal. Here is how to run your Lambda with `sls`:
 
 ```
 sls invoke --function InviteSlack --log --data '{"body": {"first_name": "Santa", "email": "santa@mad.russian.xmas.com"}}'
@@ -215,7 +217,7 @@ sls logs --function InviteSlack
 
 Success! And the end of the first episode. Enough for now: Christmas time is here, take it slow.
 
-The code example so far is on Github at [1-add-first-action](https://github.com/dzimine/slack-signup-serverless-stormless/tree/DZ/1-add-first-action). Grab `.gitignore` from there if you are using Git. Yes, you should. And if you're following alone, it's a good time to commit now, before we move to next step. Grab this `[.gitignore](https://github.com/dzimine/slack-signup-serverless-stormless/blob/DZ/1-add-first-action/.gitignore)` if you are using Git.
+The code example so far is on Github at [1-add-first-action](https://github.com/dzimine/slack-signup-serverless-stormless/tree/DZ/1-add-first-action). Grab `.gitignore` from there if you are using Git. Yes, you should. And if you're following alone, it's a good time to commit now, before we move to next step. Grab this [`.gitignore`](https://github.com/dzimine/slack-signup-serverless-stormless/blob/DZ/1-add-first-action/.gitignore) if you are using Git.
 
 > PRO TIP: Avoid pushing slack token or other credentials to GitHub by mistake. PRO who made this mistake are now preventing it by putting `env.yml` to `.gitignore`. 
 
