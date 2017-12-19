@@ -129,17 +129,109 @@ Let's add the final action, RecordDB, that writes contact info into DynamoDB tab
 
 The code goes into `./record_db/handler.py`:
 
-<script src="https://gist.github.com/dzimine/279643fac9f99bf503dea6c802881346.js"></script>
+(TODO: replace code with gist https://gist.github.com/dzimine/279643fac9f99bf503dea6c802881346)
 
-(TODO: gist https://gist.github.com/dzimine/279643fac9f99bf503dea6c802881346)
+```
+# ./record_db/handler.py
+import json
+import logging
+import os
 
+import boto3
+dynamodb = boto3.resource('dynamodb')
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+
+def endpoint(event, context):
+    logger.info("Event received: {}".format(json.dumps(event)))
+    try:
+        event = event['body']
+        event['email']
+    except KeyError:
+        raise Exception("Couldn't create the record: `email` not found.")
+
+    table = dynamodb.Table(os.environ['DYNAMODB_TABLE'])
+
+    item = {k: event[k] for k in ['email', 'first_name', 'last_name']}
+
+    table.put_item(Item=item)
+
+    return {
+        "statusCode": 200,
+        "item": item
+    }
+```
 
 The serverless.yml with all three actions looks like this:
 
 <script src="https://gist.github.com/dzimine/79545222f4a4aa1c21e0424fa9d375b1.js"></script>
 
 
-(TODO: gist https://gist.github.com/dzimine/79545222f4a4aa1c21e0424fa9d375b1)
+(TODO: replace code with gist https://gist.github.com/dzimine/79545222f4a4aa1c21e0424fa9d375b1)
+
+```
+service: signup-stormless
+
+provider:
+  name: aws
+  runtime: python2.7
+  memorySize: 128
+  timeout: 12
+  environment:
+    DYNAMODB_TABLE: ${self:service}-${opt:stage, self:provider.stage}
+  iamRoleStatements:
+    - Effect: Allow
+      Action: [dynamodb:Query, dynamodb:Scan, dynamodb:GetItem, dynamodb:PutItem, dynamodb:UpdateItem, dynamodb:DeleteItem]
+      Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
+
+functions:
+  InviteSlack:
+    stackstorm:
+      action: slack.users.admin.invite
+      input:
+        email:       "{{ input.body.email }}"
+        first_name:  "{{ input.body.first_name }}"
+      config:
+        admin: ${file(env.yml):slack}
+      output:
+        statusCode: 200
+        body: "{{ output }}"
+  RecordAC:
+    stackstorm:
+      action: activecampaign.contact_add
+      input:
+        email: "{{ input.body.email }}"
+        first_name: "{{ input.body.first_name }}"
+        last_name: "{{ input.body.last_name }}"
+      config: ${file(env.yml):active_campaign}
+
+  RecordDB:
+    handler: record_db/handler.endpoint
+
+resources:
+  Resources:
+    UsersDynamoDbTable:
+      Type: 'AWS::DynamoDB::Table'
+      DeletionPolicy: Retain
+      Properties:
+        AttributeDefinitions:
+          -
+            AttributeName: email
+            AttributeType: S
+        KeySchema:
+          -
+            AttributeName: email
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${self:provider.environment.DYNAMODB_TABLE}
+
+plugins:
+  - serverless-plugin-stackstorm
+```
 
 Wow! The function itself is just 2 lines (35:36). But quite a few interesting additions took place. Let's review: 
 
