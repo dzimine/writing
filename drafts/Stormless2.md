@@ -237,8 +237,12 @@ Wow! The function itself is just 2 lines (35:36). But quite a few interesting ad
 
 1. Line 9 - Table name will be generated to avoid collisions between regions and environments.
 2. Lines 10:13 - IAM Role created to give the function access to the DynamoDB table.
-3. Line 39:56 - AWS CloudFormation template defining the table. This 
+3. Line 39:56 - AWS CloudFormation template defining the table.
 
+The last brings an important point: Serverless framework simplifies only FaaS part of serverless, may be few more.
+But serverless is more than FaaS: as you just experienced, it's many more cloud services. Serverless framework
+leaves the space to define resources in provider specific way. To be serioudly serverless on AWS, master CloudFormation. 
+Looking "provider-agnostic serverless"? Double-check your assumptions.
 
 Also, I moved `memorySize` and `timeout` to apply to all functions (lines 6:7). And the the API Gateway endpoint is gone from InviteSlack function: it served the demonstration role in the first episode, now that learned to test Lambda functions directly. We'll return to API Gateway later to invoke the final StepFunction end-to-end workflow. 
 
