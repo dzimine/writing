@@ -36,13 +36,14 @@ active_campaign:
 
 
 Now I am ready to add an [Active Campaign](https://exchange.stackstorm.org/#activecampaign) lambda function. 
-Same routine as in [Episode One][ep-one]: start with finding a new action in a pack with `sls stackstorm info --pack activecampaign` (hint: the action you're looking is `contact_add`). Inspect the action with `sls stackstorm info --action activecampaign.contact_add`: 
+Same routine as in [Episode One][ep-one]: start with finding a new action in a pack with `sls stackstorm info --pack activecampaign` (hint: the action you're looking is `contact_sync` which adds and updates a contact). Inspect the action with `sls stackstorm info --action activecampaign.contact_sync`: 
 
 ```
-sls stackstorm info --action activecampaign.contact_add
-activecampaign.contact_add .... Add new contact.
+$ sls stackstorm info --action activecampaign.contact_sync
+
+activecampaign.contact_sync ... Sync a contact.
 Parameters
-  api_action [string]  ........ contact_add
+  api_action [string]  ........ contact_sync
   api_key [string]  ........... Your API key
   api_output [string]  ........ xml, json, or serialize (default is XML)
   email [string] (required) ... Email of the new contact. Example: 'test@example.com'
@@ -91,7 +92,7 @@ The function is ready to fly to AWS. We could do it at once with `sls deploy` bu
     sls package
     ```
 
-2. Test locally: 
+2. Test locally (note I'm using `--passthrough` to only test transformations, remove it to make an actual call): 
 
     ```
     sls  stackstorm docker run --function RecordAC --passthrough \
@@ -168,7 +169,7 @@ The serverless.yml with all three actions looks like this:
 <script src="https://gist.github.com/dzimine/79545222f4a4aa1c21e0424fa9d375b1.js"></script>
 
 
-(TODO: replace code with gist https://gist.github.com/dzimine/79545222f4a4aa1c21e0424fa9d375b1)
+(TODO: replace code with [gist](https://gist.github.com/dzimine/79545222f4a4aa1c21e0424fa9d375b1)
 
 ```
 service: signup-stormless
@@ -176,8 +177,8 @@ service: signup-stormless
 provider:
   name: aws
   runtime: python2.7
-  memorySize: 128
   timeout: 12
+  memorySize: 128
   environment:
     DYNAMODB_TABLE: ${self:service}-${opt:stage, self:provider.stage}
   iamRoleStatements:
